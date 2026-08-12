@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { Link, useRouter } from 'expo-router';
+import { MaterialIcons } from '@expo/vector-icons';
 import { Button } from '../../src/components/ui/Button';
 import { Input } from '../../src/components/ui/Input';
 import { colors, spacing, typography, borderRadius } from '../../src/theme';
@@ -31,7 +32,7 @@ export default function LoginScreen() {
         <View style={styles.inner}>
           {/* Brand Lockup */}
           <View style={styles.brandContainer}>
-            <View style={styles.logoPlaceholder} />
+            <MaterialIcons name="chat-bubble" size={64} color={colors.primary} />
           </View>
 
           {/* Heading & Subtext */}
