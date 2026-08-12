@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, SafeAreaView, TouchableOpacity, TextInput, Text } from 'react-native';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, TextInput, Text } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Header } from '../../../src/components/ui/Header';
 import { ChatBubble } from '../../../src/components/chat/ChatBubble';
