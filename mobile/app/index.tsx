@@ -1,27 +1,45 @@
-import React, { useEffect } from 'react';
-import { View, StyleSheet, Text } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, StyleSheet, Text, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors, typography } from '../src/theme';
 import { MaterialIcons } from '@expo/vector-icons';
 
 export default function SplashScreen() {
   const router = useRouter();
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.5)).current;
 
   useEffect(() => {
-    // Navigate to Login after 2 seconds
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 4,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Navigate to Login after 2.5 seconds
     const timer = setTimeout(() => {
       router.replace('/(auth)/login');
-    }, 2000);
+    }, 2500);
     return () => clearTimeout(timer);
-  }, [router]);
+  }, [router, fadeAnim, scaleAnim]);
 
   return (
     <View style={styles.container}>
-      <View style={styles.logoContainer}>
-        <MaterialIcons name="chat-bubble" size={80} color={colors.primary} />
-      </View>
-      <Text style={styles.title}>ChatBit</Text>
-      <Text style={styles.subtitle}>Votre compagnon de discussion.</Text>
+      <Animated.View style={[styles.innerContainer, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
+        <View style={styles.logoContainer}>
+          <MaterialIcons name="chat-bubble" size={80} color={colors.primary} />
+        </View>
+        <Text style={styles.title}>ChatBit</Text>
+        <Text style={styles.subtitle}>Votre compagnon de discussion.</Text>
+      </Animated.View>
     </View>
   );
 }
@@ -30,6 +48,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  innerContainer: {
     alignItems: 'center',
     justifyContent: 'center',
   },
