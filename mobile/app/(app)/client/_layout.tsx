@@ -4,7 +4,7 @@ export default function ClientLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="conversations" />
-      <Stack.Screen name="chat" />
+      <Stack.Screen name="chat/[id]" />
     </Stack>
   );
 }
