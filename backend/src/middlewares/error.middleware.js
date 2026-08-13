@@ -1,7 +1,11 @@
-module.exports = function errorHandler(err, req, res, next) {
-    console.error(err.stack || err);
-    const status = err.status || err.statusCode || 500;
-    res.status(status).json({
-        error: err.message || 'Internal Server Error',
-    });
-};
+
+function errorHandler(err, req, res, next) {
+    console.error(err);
+
+    const statusCode = err.statusCode || 500;
+    const message = statusCode === 500 ? 'Internal server error' : err.message;
+
+    res.status(statusCode).json({ error: message });
+}
+
+module.exports = errorHandler;
