@@ -62,6 +62,26 @@ async function getMessages(req, res, next) {
     }
 }
 
+async function assign(req, res, next) {
+    const conversationId = Number(req.params.id);
+
+    try {
+        const conversation = await conversationRepository.assignAgent(conversationId, req.user.id);
+
+        if (!conversation) {
+            const err = new Error('Conversation not found or already assigned');
+            err.statusCode = 409;
+            return next(err);
+        }
+
+        req.app.get('io').to(`conversation:${conversationId}`).emit('conversation:updated', conversation);
+
+        res.status(200).json({ conversation });
+    } catch (error) {
+        next(error);
+    }
+}
+
 async function close(req, res, next) {
     const conversationId = Number(req.params.id);
 
@@ -89,4 +109,4 @@ async function close(req, res, next) {
     }
 }
 
-module.exports = { create, list, getMessages, close };
+module.exports = { create, list, getMessages, assign, close };
