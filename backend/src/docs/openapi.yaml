@@ -176,6 +176,37 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /api/conversations/{id}/assign:
+    patch:
+      tags: [Conversations]
+      summary: Assign the current agent to a pending conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Conversation assigned, status now "en_cours"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversation:
+                    $ref: '#/components/schemas/Conversation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Conversation not found or already assigned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /api/conversations/{id}/close:
     patch:
       tags: [Conversations]
