@@ -10,6 +10,7 @@ export const colors = {
   muted: '#9B9CA8',
   errorBg: 'rgba(226, 87, 76, 0.1)',
   errorText: '#E2574C',
+  success: '#33a190',
 };
 
 export const spacing = {
@@ -25,6 +26,7 @@ export const borderRadius = {
   sm: 8,
   md: 16,
   lg: 20,
+  full: 9999,
 };
 
 export const typography = {
@@ -33,6 +35,12 @@ export const typography = {
     fontSize: 24,
     lineHeight: 32,
     letterSpacing: -0.48, // -0.02em * 24
+  },
+  headerSm: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '600' as const,
   },
   bodyMd: {
     fontFamily: 'Inter-Regular',
@@ -53,5 +61,11 @@ export const typography = {
     fontFamily: 'IBMPlexMono-Regular',
     fontSize: 11,
     lineHeight: 14,
+  },
+  statusLabel: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '500' as const,
   },
 };
