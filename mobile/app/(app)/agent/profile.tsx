@@ -1,17 +1,41 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Header } from '../../../src/components/ui/Header';
 import { Button } from '../../../src/components/ui/Button';
 import { colors, spacing, typography, borderRadius } from '../../../src/theme';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useAuth } from '../../../src/hooks/useAuth';
+import { useSocket } from '../../../src/hooks/useSocket';
+import { useConversations } from '../../../src/hooks/useConversations';
+import { Conversation } from '../../../src/api/conversations';
 
 export default function AgentProfileScreen() {
   const router = useRouter();
+  const { user, logout } = useAuth();
+  const { isConnected } = useSocket();
+  const { conversations } = useConversations();
+
+  const resolvedCount = conversations.filter((c: Conversation) => c.status === 'fermee').length;
+  const activeCount = conversations.filter((c: Conversation) => c.status === 'en_cours').length;
 
   const handleLogout = () => {
-    router.replace('/(auth)/login');
+    Alert.alert(
+      'Déconnexion',
+      'Voulez-vous vraiment vous déconnecter ?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Se déconnecter',
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+            router.replace('/(auth)/login');
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -21,39 +45,37 @@ export default function AgentProfileScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.profileHeader}>
           <View style={styles.avatar}>
-            <MaterialIcons name="person" size={48} color={colors.text} />
+            <MaterialIcons name="support-agent" size={48} color={colors.primary} />
           </View>
-          <Text style={styles.name}>Agent Alice</Text>
-          <Text style={styles.email}>agent.alice@chatbit.com</Text>
+          <Text style={styles.name}>{user?.fullname || 'Agent'}</Text>
+          <Text style={styles.email}>{user?.email || ''}</Text>
           <View style={styles.statusBadge}>
-            <View style={styles.statusDot} />
-            <Text style={styles.statusText}>En ligne</Text>
+            <View style={[styles.statusDot, !isConnected && styles.statusDotOffline]} />
+            <Text style={styles.statusText}>{isConnected ? 'En ligne' : 'Hors ligne'}</Text>
           </View>
         </View>
 
         <View style={styles.statsContainer}>
           <View style={styles.statBox}>
-            <Text style={styles.statValue}>42</Text>
+            <Text style={styles.statValue}>{resolvedCount}</Text>
             <Text style={styles.statLabel}>Tickets résolus</Text>
           </View>
           <View style={styles.statBox}>
-            <Text style={styles.statValue}>4.8</Text>
-            <Text style={styles.statLabel}>Note moyenne</Text>
+            <Text style={styles.statValue}>{activeCount}</Text>
+            <Text style={styles.statLabel}>Tickets en cours</Text>
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Paramètres</Text>
-          <TouchableOpacity style={styles.settingsItem}>
-            <MaterialIcons name="notifications-active" size={24} color={colors.text} />
-            <Text style={styles.settingsItemText}>Notifications</Text>
-            <MaterialIcons name="chevron-right" size={24} color={colors.muted} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.settingsItem}>
-            <MaterialIcons name="security" size={24} color={colors.text} />
-            <Text style={styles.settingsItemText}>Sécurité</Text>
-            <MaterialIcons name="chevron-right" size={24} color={colors.muted} />
-          </TouchableOpacity>
+          <Text style={styles.sectionTitle}>Compte</Text>
+          <View style={styles.settingsItem}>
+            <MaterialIcons name="badge" size={24} color={colors.primaryHover} />
+            <Text style={styles.settingsItemText}>Rôle : {user?.role === 'agent' ? 'Agent Support' : 'Client'}</Text>
+          </View>
+          <View style={styles.settingsItem}>
+            <MaterialIcons name="fingerprint" size={24} color={colors.primaryHover} />
+            <Text style={styles.settingsItemText}>ID Utilisateur : #{user?.id}</Text>
+          </View>
         </View>
         
         <View style={styles.logoutContainer}>
@@ -115,8 +137,11 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#33a190', // Secondary container / success green
+    backgroundColor: colors.success,
     marginRight: spacing.xs,
+  },
+  statusDotOffline: {
+    backgroundColor: colors.errorText,
   },
   statusText: {
     ...typography.statusLabel,
