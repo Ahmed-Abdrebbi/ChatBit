@@ -1,25 +1,45 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Button } from '../../src/components/ui/Button';
 import { Input } from '../../src/components/ui/Input';
 import { colors, spacing, typography, borderRadius } from '../../src/theme';
+import { useAuth } from '../../src/hooks/useAuth';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
-    // For demo purposes, we'll just navigate or show error
-    if (email === 'agent@chatbit.com') {
-      router.replace('/(app)/agent/inbox');
-    } else if (email) {
-      router.replace('/(app)/client/conversations');
-    } else {
-      setError('E-mail ou mot de passe incorrect.');
+  const handleLogin = async () => {
+    if (!email.trim() || !password.trim()) {
+      setError('Veuillez remplir tous les champs.');
+      return;
+    }
+
+    setError('');
+    setLoading(true);
+
+    try {
+      await login(email.trim(), password);
+
+      // After login, useAuth provides the user — route by role
+      // We need to re-read the user from context after login resolves
+      // The simplest approach: just navigate, the splash/root will redirect
+      // But since login sets the user in context, we can check it here
+      // However, the state update is async — let's rely on a simpler approach:
+      // We navigate to index which will route based on role
+      router.replace('/');
+    } catch (err: any) {
+      const message =
+        err.response?.data?.message || err.message || 'E-mail ou mot de passe incorrect.';
+      setError(message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -47,7 +67,7 @@ export default function LoginScreen() {
               label="Adresse e-mail"
               placeholder="vous@exemple.com"
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(text) => { setEmail(text); setError(''); }}
               keyboardType="email-address"
               autoCapitalize="none"
             />
@@ -56,18 +76,19 @@ export default function LoginScreen() {
               label="Mot de passe"
               placeholder="••••••••"
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(text) => { setPassword(text); setError(''); }}
               isPassword
             />
             
             <View style={styles.buttonContainer}>
-              <Button title="Se connecter" onPress={handleLogin} />
+              <Button title="Se connecter" onPress={handleLogin} loading={loading} disabled={loading} />
             </View>
           </View>
 
           {error ? (
             <View style={styles.errorBanner}>
-              <Text style={styles.errorBannerText}>{error}</Text>
+              <MaterialIcons name="error-outline" size={16} color={colors.errorText} />
+              <Text style={styles.errorBannerText}> {error}</Text>
             </View>
           ) : null}
 
@@ -98,13 +119,6 @@ const styles = StyleSheet.create({
   brandContainer: {
     marginBottom: spacing.xl,
     alignItems: 'center',
-  },
-  logoPlaceholder: {
-    width: 64,
-    height: 64,
-    borderRadius: borderRadius.sm,
-    marginBottom: spacing.sm,
-    backgroundColor: colors.surface,
   },
   headerContainer: {
     alignItems: 'center',
@@ -138,11 +152,12 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     borderRadius: borderRadius.sm,
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
   errorBannerText: {
     ...typography.bodySm,
     color: colors.errorText,
+    flex: 1,
   },
   footer: {
     marginTop: spacing.lg,

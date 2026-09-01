@@ -1,11 +1,13 @@
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Text, Animated } from 'react-native';
+import { View, StyleSheet, Text, Animated, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors, typography } from '../src/theme';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useAuth } from '../src/hooks/useAuth';
 
 export default function SplashScreen() {
   const router = useRouter();
+  const { user, isLoading } = useAuth();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.5)).current;
 
@@ -23,13 +25,26 @@ export default function SplashScreen() {
         useNativeDriver: true,
       }),
     ]).start();
+  }, [fadeAnim, scaleAnim]);
 
-    // Navigate to Login after 2.5 seconds
+  useEffect(() => {
+    if (isLoading) return; // Wait for auth to finish loading
+
     const timer = setTimeout(() => {
-      router.replace('/(auth)/login');
-    }, 2500);
+      if (user) {
+        // Route based on role
+        if (user.role === 'agent') {
+          router.replace('/(app)/agent/inbox');
+        } else {
+          router.replace('/(app)/client/conversations');
+        }
+      } else {
+        router.replace('/(auth)/login');
+      }
+    }, 1500);
+
     return () => clearTimeout(timer);
-  }, [router, fadeAnim, scaleAnim]);
+  }, [user, isLoading, router]);
 
   return (
     <View style={styles.container}>
@@ -39,6 +54,9 @@ export default function SplashScreen() {
         </View>
         <Text style={styles.title}>ChatBit</Text>
         <Text style={styles.subtitle}>Votre compagnon de discussion.</Text>
+        {isLoading && (
+          <ActivityIndicator color={colors.primary} style={styles.loader} />
+        )}
       </Animated.View>
     </View>
   );
@@ -67,5 +85,8 @@ const styles = StyleSheet.create({
   subtitle: {
     ...typography.bodyMd,
     color: colors.muted,
+  },
+  loader: {
+    marginTop: 24,
   },
 });
