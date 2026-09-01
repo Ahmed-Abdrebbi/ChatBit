@@ -1,23 +1,26 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Header } from '../../../src/components/ui/Header';
+import { ConversationItem } from '../../../src/components/ConversationItem';
 import { colors, spacing, typography, borderRadius } from '../../../src/theme';
 import { MaterialIcons } from '@expo/vector-icons';
-
-const mockConversations = [
-  { id: '1', subject: 'Problème de connexion', agent: 'Agent Alice', status: 'Active', lastMessage: 'Pouvez-vous m\'envoyer une capture d\'écran ?', time: '10:30' },
-  { id: '2', subject: 'Facturation double', agent: 'Agent Bob', status: 'Closed', lastMessage: 'Le remboursement a été effectué.', time: 'Hier' },
-];
+import { useConversations } from '../../../src/hooks/useConversations';
+import { useAuth } from '../../../src/hooks/useAuth';
 
 export default function ClientConversationsScreen() {
   const router = useRouter();
-  // Set to empty array to test empty state
-  const [conversations, setConversations] = useState(mockConversations);
+  const { logout } = useAuth();
+  const { conversations, isLoading, isError, refetch } = useConversations();
 
   const handleNewConversation = () => {
     router.push('/(modals)/new-conversation');
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    router.replace('/(auth)/login');
   };
 
   const renderEmptyState = () => (
@@ -31,31 +34,23 @@ export default function ClientConversationsScreen() {
     </View>
   );
 
-  const renderItem = ({ item }: { item: typeof mockConversations[0] }) => (
-    <TouchableOpacity 
-      style={styles.conversationCard}
-      onPress={() => router.push(`/(app)/client/chat/${item.id}`)}
-    >
-      <View style={styles.cardHeader}>
-        <Text style={styles.subject}>{item.subject}</Text>
-        <Text style={styles.time}>{item.time}</Text>
-      </View>
-      <Text style={styles.agentInfo}>Avec: {item.agent}</Text>
-      <Text style={styles.lastMessage} numberOfLines={1}>{item.lastMessage}</Text>
-      <View style={[styles.statusBadge, item.status === 'Closed' && styles.statusBadgeClosed]}>
-        <Text style={[styles.statusText, item.status === 'Closed' && styles.statusTextClosed]}>
-          {item.status === 'Closed' ? 'Fermé' : 'Actif'}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Header title="Mes Conversations" />
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
       <Header 
         title="Mes Conversations" 
         rightElement={
-          <TouchableOpacity onPress={() => router.replace('/(auth)/login')}>
+          <TouchableOpacity onPress={handleLogout}>
             <MaterialIcons name="logout" size={24} color={colors.text} />
           </TouchableOpacity>
         }
@@ -67,9 +62,17 @@ export default function ClientConversationsScreen() {
         <>
           <FlatList
             data={conversations}
-            keyExtractor={item => item.id}
-            renderItem={renderItem}
+            keyExtractor={item => item.id.toString()}
+            renderItem={({ item }) => (
+              <ConversationItem
+                conversation={item}
+                onPress={() => router.push(`/(app)/client/chat/${item.id}`)}
+                showAgent
+              />
+            )}
             contentContainerStyle={styles.listContent}
+            onRefresh={refetch}
+            refreshing={isLoading}
           />
           <TouchableOpacity style={styles.fab} onPress={handleNewConversation}>
             <MaterialIcons name="add" size={24} color={colors.onPrimary} />
@@ -84,6 +87,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   listContent: {
     padding: spacing.md,
@@ -115,56 +123,6 @@ const styles = StyleSheet.create({
   newChatText: {
     ...typography.uiAction,
     color: colors.onPrimary,
-  },
-  conversationCard: {
-    backgroundColor: colors.surface,
-    padding: spacing.md,
-    borderRadius: borderRadius.lg,
-    marginBottom: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.inputBorder,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
-  subject: {
-    ...typography.headerSm,
-    color: colors.text,
-    flex: 1,
-  },
-  time: {
-    ...typography.timestamp,
-    color: colors.muted,
-  },
-  agentInfo: {
-    ...typography.bodySm,
-    color: colors.primaryHover,
-    marginBottom: spacing.xs,
-  },
-  lastMessage: {
-    ...typography.bodyMd,
-    color: colors.muted,
-    marginBottom: spacing.sm,
-  },
-  statusBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(232, 163, 61, 0.1)',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: borderRadius.sm,
-  },
-  statusBadgeClosed: {
-    backgroundColor: colors.inputBg,
-  },
-  statusText: {
-    ...typography.statusLabel,
-    color: colors.primary,
-  },
-  statusTextClosed: {
-    color: colors.muted,
   },
   fab: {
     position: 'absolute',

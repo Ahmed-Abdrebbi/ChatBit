@@ -1,71 +1,95 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import React, { useRef, useEffect } from 'react';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import { Header } from '../../../../src/components/ui/Header';
-import { ChatBubble } from '../../../../src/components/chat/ChatBubble';
-import { colors, spacing, borderRadius, typography } from '../../../../src/theme';
-import { MaterialIcons } from '@expo/vector-icons';
-
-const MOCK_MESSAGES = [
-  { id: '1', text: 'Bonjour, j\'ai un problème avec ma connexion.', time: '10:00', isUser: true },
-  { id: '2', text: 'Bonjour ! Je suis l\'Agent Alice. Pouvez-vous m\'en dire plus ?', time: '10:05', isUser: false },
-  { id: '3', text: 'Je n\'arrive pas à me connecter depuis ce matin.', time: '10:06', isUser: true },
-];
+import { MessageBubble } from '../../../../src/components/MessageBubble';
+import { MessageInput } from '../../../../src/components/MessageInput';
+import { TypingIndicator } from '../../../../src/components/TypingIndicator';
+import { colors, spacing, typography } from '../../../../src/theme';
+import { useMessages } from '../../../../src/hooks/useMessages';
+import { useAuth } from '../../../../src/hooks/useAuth';
+import { Message } from '../../../../src/api/conversations';
 
 export default function ClientChatScreen() {
-  const { id } = useLocalSearchParams();
-  const [messages, setMessages] = useState(MOCK_MESSAGES);
-  const [newMessage, setNewMessage] = useState('');
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const conversationId = Number(id);
+  const { user } = useAuth();
+  const {
+    messages,
+    isLoading,
+    sendMessage,
+    startTyping,
+    stopTyping,
+    isOtherTyping,
+    isClosed,
+  } = useMessages(conversationId);
 
-  const sendMessage = () => {
-    if (!newMessage.trim()) return;
-    
-    setMessages([...messages, {
-      id: Date.now().toString(),
-      text: newMessage,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isUser: true,
-    }]);
-    setNewMessage('');
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  // Auto-scroll to bottom on new messages
+  useEffect(() => {
+    if (messages.length > 0) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [messages.length]);
+
+  const formatTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Header title={`Conversation #${id}`} showBack />
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header title={`Ticket #${id}`} showBack />
+      <Header title={`Conversation #${id}`} showBack />
+
+      {isClosed && (
+        <View style={styles.closedBanner}>
+          <Text style={styles.closedText}>Cette conversation a été fermée par l'agent.</Text>
+        </View>
+      )}
       
       <KeyboardAvoidingView 
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          {messages.map(msg => (
-            <ChatBubble 
-              key={msg.id} 
-              message={msg.text} 
-              time={msg.time} 
-              isUser={msg.isUser} 
+        <ScrollView
+          ref={scrollViewRef}
+          contentContainerStyle={styles.scrollContent}
+          onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+        >
+          {messages.map((msg: Message) => (
+            <MessageBubble
+              key={msg.id}
+              content={msg.content}
+              time={formatTime(msg.sentat)}
+              isOwn={msg.senderid === user?.id}
+              senderName={msg.senderid !== user?.id ? msg.sender_fullname : undefined}
+              isRead={msg.isread}
             />
           ))}
+          <TypingIndicator isVisible={isOtherTyping} />
         </ScrollView>
         
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Écrivez un message..."
-            placeholderTextColor={colors.muted}
-            value={newMessage}
-            onChangeText={setNewMessage}
-            multiline
-          />
-          <TouchableOpacity 
-            style={[styles.sendButton, !newMessage.trim() && styles.sendButtonDisabled]} 
-            onPress={sendMessage}
-            disabled={!newMessage.trim()}
-          >
-            <MaterialIcons name="send" size={20} color={colors.onPrimary} />
-          </TouchableOpacity>
-        </View>
+        <MessageInput
+          onSend={sendMessage}
+          onTypingStart={startTyping}
+          onTypingStop={stopTyping}
+          disabled={isClosed}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -76,45 +100,28 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closedBanner: {
+    backgroundColor: colors.errorBg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.inputBorder,
+  },
+  closedText: {
+    ...typography.bodySm,
+    color: colors.errorText,
+    textAlign: 'center',
+  },
   keyboardView: {
     flex: 1,
   },
   scrollContent: {
     padding: spacing.md,
     flexGrow: 1,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    padding: spacing.sm,
-    backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: colors.inputBorder,
-    alignItems: 'flex-end',
-  },
-  input: {
-    flex: 1,
-    backgroundColor: colors.inputBg,
-    color: colors.text,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.sm,
-    paddingTop: 12,
-    paddingBottom: 12,
-    minHeight: 48,
-    maxHeight: 120,
-    ...typography.bodyMd,
-    marginRight: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.inputBorder,
-  },
-  sendButton: {
-    backgroundColor: colors.primary,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sendButtonDisabled: {
-    opacity: 0.5,
   },
 });
