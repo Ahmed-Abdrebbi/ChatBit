@@ -96,37 +96,6 @@ export default function RegisterScreen() {
               isPassword
             />
 
-            {/* Role Picker */}
-            <Text style={styles.roleLabel}>Je suis :</Text>
-            <View style={styles.roleContainer}>
-              <TouchableOpacity
-                style={[styles.roleButton, role === 'client' && styles.roleButtonActive]}
-                onPress={() => setRole('client')}
-              >
-                <MaterialIcons
-                  name="person"
-                  size={20}
-                  color={role === 'client' ? colors.onPrimary : colors.text}
-                />
-                <Text style={[styles.roleText, role === 'client' && styles.roleTextActive]}>
-                  Client
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.roleButton, role === 'agent' && styles.roleButtonActive]}
-                onPress={() => setRole('agent')}
-              >
-                <MaterialIcons
-                  name="support-agent"
-                  size={20}
-                  color={role === 'agent' ? colors.onPrimary : colors.text}
-                />
-                <Text style={[styles.roleText, role === 'agent' && styles.roleTextActive]}>
-                  Agent
-                </Text>
-              </TouchableOpacity>
-            </View>
-
             <View style={styles.buttonContainer}>
               <Button title="S'inscrire" onPress={handleRegister} loading={loading} disabled={loading} />
             </View>
