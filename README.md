@@ -334,6 +334,20 @@ npx expo start
 
 Scanner le QR code avec Expo Go, ou lancer un simulateur iOS/Android depuis le terminal Expo.
 
+### 5. Démarrer avec Docker (Alternative Tout-en-un)
+
+Vous pouvez lancer l'intégralité du projet (Base de données PostgreSQL + Backend API + Client Web) avec une seule commande Docker Compose :
+
+```bash
+docker compose up --build
+```
+
+- **Client Web** : [http://localhost:8080](http://localhost:8080)
+- **Backend API** : [http://localhost:3000](http://localhost:3000)
+- **Documentation API** : [http://localhost:3000/docs](http://localhost:3000/docs)
+
+Voir [`DOCKER.md`](DOCKER.md) pour la documentation complète sur Docker.
+
 ---
 
 ## Base de données

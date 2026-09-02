@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database Service
+  db:
+    image: postgres:16-alpine
+    container_name: chatbit-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-chatbit_db}
+      POSTGRES_USER: ${DB_USER:-chatbit_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-chatbit_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./backend/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-chatbit_user} -d ${DB_NAME:-chatbit_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - chatbit-network
+
+  # Backend Node.js Express + Socket.IO API Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: chatbit-backend
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-chatbit_user}
+      DB_PASSWORD: ${DB_PASSWORD:-chatbit_password}
+      DB_NAME: ${DB_NAME:-chatbit_db}
+      JWT_SECRET: ${JWT_SECRET:-chatbit_super_secret_jwt_token_2026}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1d}
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - chatbit-network
+
+  # Mobile / Web Frontend Service (Expo Web served via Nginx)
+  mobile:
+    build:
+      context: ./mobile
+      dockerfile: Dockerfile
+      args:
+        EXPO_PUBLIC_API_URL: ${EXPO_PUBLIC_API_URL:-http://localhost:3000}
+    container_name: chatbit-web
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - chatbit-network
+
+volumes:
+  postgres_data:
+
+networks:
+  chatbit-network:
+    driver: bridge
