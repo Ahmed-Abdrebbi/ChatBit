@@ -1,7 +1,5 @@
-version: '3.8'
 
 services:
-  # PostgreSQL Database Service
   db:
     image: postgres:16-alpine
     container_name: chatbit-db
@@ -23,7 +21,7 @@ services:
     networks:
       - chatbit-network
 
-  # Backend Node.js Express + Socket.IO API Service
+
   backend:
     build:
       context: ./backend
@@ -47,7 +45,7 @@ services:
     networks:
       - chatbit-network
 
-  # Mobile / Web Frontend Service (Expo Web served via Nginx)
+
   mobile:
     build:
       context: ./mobile
